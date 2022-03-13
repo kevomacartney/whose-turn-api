@@ -1,0 +1,80 @@
+[
+  {
+    "id": "a6d83c44-cdf2-4da2-a3c5-0c055d337b30",
+    "createdBy": "6707217d-151a-4a23-a442-2965e17f8bb5",
+    "category": "Kitchen",
+    "active": true,
+    "createdOn": "2022-01-05T11:21:59.001+0000",
+    "description": "Ariel laundry pods, 38 box",
+    "flagged": false,
+    "lastUpdate": "2021-01-05T11:21:59.001+0000",
+    "location": "London",
+    "priority": "low",
+    "title": "Laundry pods"
+  },
+  {
+    "id": "8a9d260c-fe8d-43d0-90b6-d2aa01969c34",
+    "createdBy": "6707217d-151a-4a23-a442-2965e17f8bb5",
+    "category": "Kitchen",
+    "active": false,
+    "createdOn": "2022-01-05T11:21:59.001+0000",
+    "description": "Quantum dishwasher tablets, 50 tables",
+    "flagged": true,
+    "lastUpdate": "2021-01-05T11:21:59.001+0000",
+    "location": "London",
+    "priority": "high",
+    "title": "Dishwasher tables"
+  },
+  {
+    "id": "be2b2eea-9921-4bce-9bf4-18eb05b37211",
+    "createdBy": "6707217d-151a-4a23-a442-2965e17f8bb5",
+    "category": "Bathroom",
+    "active": false,
+    "createdOn": "2022-01-05T11:21:59.001+0000",
+    "description": "Sensodyne Daily Care Gentle Whitening 100ml Pump",
+    "flagged": true,
+    "lastUpdate": "2021-01-05T11:21:59.001+0000",
+    "location": "London",
+    "priority": "low",
+    "title": "Toothpaste"
+  },
+  {
+    "id": "34a3e054-33e9-4d97-8e47-1efcbf9ad3e8",
+    "createdBy": "6707217d-151a-4a23-a442-2965e17f8bb5",
+    "category": "Bathroom",
+    "active": true,
+    "createdOn": "2022-01-05T11:21:59.001+0000",
+    "description": "3 ply toilet paper",
+    "flagged": false,
+    "lastUpdate": "2021-01-05T11:21:59.001+0000",
+    "location": "London",
+    "priority": "low",
+    "title": "Toilet paper"
+  },
+  {
+    "id": "b730aa88-2f33-4d18-95cf-613b2d9d23c3",
+    "createdBy": "6707217d-151a-4a23-a442-2965e17f8bb5",
+    "category": "Food",
+    "active": true,
+    "createdOn": "2022-01-05T11:21:59.001+0000",
+    "description": "Any salt",
+    "flagged": false,
+    "lastUpdate": "2021-01-05T11:21:59.001+0000",
+    "location": "London",
+    "priority": "low",
+    "title": "Salt"
+  },
+  {
+    "id": "36877252-c138-4146-978b-5b72e0ad1390",
+    "createdBy": "6707217d-151a-4a23-a442-2965e17f8bb5",
+    "category": "Food",
+    "active": false,
+    "createdOn": "2022-01-05T11:21:59.001+0000",
+    "description": "",
+    "flagged": true,
+    "lastUpdate": "2021-01-05T11:21:59.001+0000",
+    "location": "London",
+    "priority": "low",
+    "title": "Brown sugar"
+  }
+]
