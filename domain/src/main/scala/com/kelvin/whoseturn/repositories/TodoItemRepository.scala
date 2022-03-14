@@ -9,7 +9,7 @@ import fs2.Pipe
 import java.util.UUID
 
 trait TodoItemRepository[F[_]] {
-  def getItem(todoItemEntity: TodoItemEntity): Pipe[IO, UUID, TodoItemEntity]
+  def getItem: Pipe[IO, UUID, TodoItemEntity]
 
   def addItem(todoItemEntity: TodoItemEntity): IO[TodoItemEntity]
 

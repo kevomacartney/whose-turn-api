@@ -65,7 +65,8 @@ object Dependencies {
   }
 
   object Testing {
-    lazy val testFramework = "org.scalatest" %% "scalatest" % "3.2.9" % "test"
+    lazy val testFramework     = "org.scalatest" %% "scalatest" % "3.2.9" % Test
+    lazy val mockTestFramework = "org.scalamock" %% "scalamock" % "5.1.0" % Test
 
     lazy val testContainer              = "com.dimafeng"       %% "testcontainers-scala-scalatest"  % "0.39.12"
     lazy val `testContainer-cassandra`  = "org.testcontainers" % "cassandra"                        % "1.16.3"

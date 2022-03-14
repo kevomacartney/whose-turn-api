@@ -34,14 +34,9 @@ class PostgresqlTodoItemRepositorySpec
       withPostgresqlTodoItemRepository(table) { repo =>
         val writtenEntity = TodoItemEntityFixture().copy(id = UUID.randomUUID())
 
-        Stream
-          .eval(IO(writtenEntity))
-          .through(repo.addItem)
-          .compile
-          .last
-          .unsafeRunSync()
+        repo.addItem(writtenEntity).unsafeRunSync()
 
-        val entity: TodoItemEntity = getTodoItemById(entityId = writtenEntity.id, tableName = table)
+        val entity: TodoItemEntity = readTodoItemById(entityId = writtenEntity.id, tableName = table)
 
         entity mustBe writtenEntity
       }
@@ -85,7 +80,7 @@ class PostgresqlTodoItemRepositorySpec
           .unsafeRunSync()
           .get
 
-        val getResult = getTodoItemById(writtenEntity.id, table)
+        val getResult = readTodoItemById(writtenEntity.id, table)
 
         getResult mustBe updatedEntity
       }
@@ -109,7 +104,7 @@ object PostgresqlTodoItemRepositorySpec {
     f(repo)
   }
 
-  def getTodoItemById(entityId: UUID, tableName: String)(implicit transactor: Transactor[IO]): TodoItemEntity = {
+  def readTodoItemById(entityId: UUID, tableName: String)(implicit transactor: Transactor[IO]): TodoItemEntity = {
     val query =
       s"""
           select id, title, createdBy, createdOn, lastUpdate, description, flagged, category, priority, location, active

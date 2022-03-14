@@ -19,7 +19,8 @@ lazy val commonSettings = Seq(
     Logging.logBack,
     Logging.catsLogging,
     Time.nScalaTime,
-    Testing.testFramework
+    Testing.testFramework,
+    Testing.mockTestFramework
   ),
   dependencyOverrides ++= Dependencies.overrides,
   publish := {},
