@@ -4,7 +4,7 @@ import cats.effect._
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.jvm._
 import com.kelvin.whoseturn.config.{ApplicationConfig, CassandraConfig}
-import com.kelvin.whoseturn.services.TodoStateService
+import com.kelvin.whoseturn.web.services.TodoStateService
 import com.typesafe.scalalogging.LazyLogging
 import fs2.Stream
 import org.http4s.HttpRoutes

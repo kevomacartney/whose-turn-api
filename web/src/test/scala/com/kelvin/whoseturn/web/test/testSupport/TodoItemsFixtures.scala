@@ -1,8 +1,9 @@
-package testSupport
+package com.kelvin.whoseturn.web.test.testSupport
 
 import com.github.nscala_time.time.Imports.DateTimeZone
 import com.kelvin.whoseturn.entity.TodoItemEntity
-import com.kelvin.whoseturn.models.CreateTodoItemModel
+import com.kelvin.whoseturn.todo.{LowPriority, Priority}
+import com.kelvin.whoseturn.web.models.CreateTodoItemModel
 import org.joda.time.DateTime
 
 import java.util.UUID
@@ -20,7 +21,7 @@ trait TodoItemsFixtures {
       description: String = "Ariel laundry pods, 38 box",
       flagged: Boolean = false,
       category: String = "Kitchen",
-      priority: String = "low",
+      priority: Priority = LowPriority,
       location: String = "London",
       active: Boolean = false
   ): TodoItemEntity =
@@ -33,7 +34,7 @@ trait TodoItemsFixtures {
       description = description,
       flagged = flagged,
       category = category,
-      priority = priority,
+      priority = priority.toString,
       location = location,
       active = active
     )
@@ -43,7 +44,7 @@ trait TodoItemsFixtures {
       description: String = "Ariel laundry pods, 38 box",
       flagged: Boolean = false,
       category: String = "Kitchen",
-      priority: String = "low",
+      priority: Priority = LowPriority,
       location: String = "London",
       active: Boolean = false
   ): CreateTodoItemModel = {

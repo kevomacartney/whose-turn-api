@@ -1,8 +1,8 @@
-package com.kelvin.whoseturn.services
+package com.kelvin.whoseturn.web.services
 
 import cats.effect._
 import com.codahale.metrics.MetricRegistry
-import com.kelvin.whoseturn.repositories.{ItemRepository, RepositoryItem}
+import com.kelvin.whoseturn.web.repositories.{ItemRepository, RepositoryItem}
 import io.circe._
 import io.circe.generic.semiauto._
 import io.circe.syntax._

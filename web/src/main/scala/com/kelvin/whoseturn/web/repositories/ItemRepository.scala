@@ -1,4 +1,4 @@
-package com.kelvin.whoseturn.repositories
+package com.kelvin.whoseturn.web.repositories
 
 import cats.effect.{IO, Resource}
 import com.codahale.metrics.MetricRegistry
@@ -14,13 +14,13 @@ class ItemRepository(metricRegistry: MetricRegistry) extends Repository[IO] {
   }
 
   private def retrieveItem(): IO[Option[RepositoryItem]] =
-    IO(Some(RepositoryItem(name = "repository-item", id = UUID.randomUUID())))
+    IO(Some(RepositoryItem(name = "com.kelvin.whoseturn.web.test.repository-item", id = UUID.randomUUID())))
 
   private def incrementFailureMetrics(): IO[Unit] =
-    IO(metricRegistry.meter("item-repository.failure").mark())
+    IO(metricRegistry.meter("item-com.kelvin.whoseturn.web.test.repository.failure").mark())
 
   private def incrementSuccessMetrics(): IO[Unit] =
-    IO(metricRegistry.meter("item-repository.success").mark())
+    IO(metricRegistry.meter("item-com.kelvin.whoseturn.web.test.repository.success").mark())
 }
 
 object ItemRepository {

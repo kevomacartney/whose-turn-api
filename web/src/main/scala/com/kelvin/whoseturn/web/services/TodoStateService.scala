@@ -1,31 +1,29 @@
-package com.kelvin.whoseturn.services
+package com.kelvin.whoseturn.web.services
 
 import cats.syntax._
 import cats.implicits._
 import cats.data._
 import com.codahale.metrics.MetricRegistry
-import com.kelvin.whoseturn.repositories.TodoItemRepository
+import com.kelvin.whoseturn.web.repositories.TodoItemRepository
 import cats.effect.IO
-import com.codahale.metrics.MetricRegistry
 import com.kelvin.whoseturn.entity.TodoItemEntity
 import com.kelvin.whoseturn.errors.meta.BodyError
-import com.kelvin.whoseturn.errors.{ValidatedField, ValidationError}
-import com.kelvin.whoseturn.models.CreateTodoItemModel
+import com.kelvin.whoseturn.errors.http._
+import com.kelvin.whoseturn.web.models.CreateTodoItemModel
+import com.kelvin.whoseturn.todo.Priority._
 import com.kelvin.whoseturn.implicits.CirceTimestampEncoder._
 import com.kelvin.whoseturn.implicits.TimestampImplicits._
+import com.kelvin.whoseturn.web.services.TodoStateServiceValidation._
 import com.typesafe.scalalogging.LazyLogging
+import fs2.Stream
 import io.circe._
 import io.circe.generic.auto._
 import io.circe.syntax._
-import fs2._
 import org.http4s._
 import org.http4s.circe._
 import org.http4s.dsl.io._
 import org.joda.time.DateTime
-import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-import java.sql.Timestamp
 import java.util.UUID
 
 class TodoStateService(implicit var metricRegistry: MetricRegistry, todoItemRepository: TodoItemRepository[IO])
@@ -37,28 +35,20 @@ class TodoStateService(implicit var metricRegistry: MetricRegistry, todoItemRepo
     case req @ PUT -> Root / "add" =>
       req
         .as[CreateTodoItemModel]
-        .map(applyValidation)
+        .map(validateCreateTodoItemModel)
         .flatMap(addTodoEntityToRepo)
         .flatMap(createValidationResponse[TodoItemEntity])
         .handleErrorWith(handleIOError)
   }
 
-  def applyValidation(createdTodoModel: CreateTodoItemModel): ValidatedNel[ValidatedField, TodoItemEntity] =
-    createdTodoModel.validNel[ValidatedField].map { model =>
-      TodoItemEntity(
-        id = UUID.randomUUID(),
-        title = model.title,
-        createdBy = UUID.randomUUID(),
-        createdOn = DateTime.now().toTimestamp,
-        lastUpdate = DateTime.now().toTimestamp,
-        description = model.description,
-        flagged = model.flagged,
-        category = model.category,
-        priority = model.priority,
-        location = model.location,
-        active = model.active
-      )
-    }
+  def get(): HttpRoutes[IO] = HttpRoutes.of[IO] {
+    case GET -> Root / "get" / UUIDVar(todoItemId) =>
+      val stream = Stream
+        .eval(IO(todoItemId))
+        .through(todoItemRepository.getItem)
+
+      Ok(stream)
+  }
 
   def addTodoEntityToRepo(
       validatedTodo: ValidatedNel[ValidatedField, TodoItemEntity]

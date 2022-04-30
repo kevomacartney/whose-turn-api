@@ -1,4 +1,4 @@
-package com.kelvin.whoseturn.services
+package com.kelvin.whoseturn.web.services
 
 import cats._
 import cats.implicits._
@@ -6,7 +6,7 @@ import cats.data._
 import cats.effect.IO
 import com.kelvin.whoseturn.entity.TodoItemEntity
 import com.kelvin.whoseturn.errors._
-import com.kelvin.whoseturn.errors.ValidationError
+import com.kelvin.whoseturn.errors.http.{CriticalError, GenericError, ValidationError}
 import fs2.Pipe
 import io.circe.Json
 import io.circe.generic.auto._
@@ -21,8 +21,8 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import fs2._
 
 trait ServiceHelpers {
-  private val logger: Logger[IO]                                     = Slf4jLogger.getLogger[IO]
-  implicit val validationEncoder: EntityEncoder[IO, ValidationError] = jsonEncoderOf[IO, ValidationError]
+  import ServiceHelpers._
+  private val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
   def handleIOError(error: Throwable): IO[Response[IO]] = {
     val criticalError = CriticalError(message = "There was an Internal Service Error, please try again.")
@@ -52,11 +52,18 @@ trait ServiceHelpers {
   }
 
   private def createCriticalErrorResponse(error: Throwable, internalError: CriticalError): IO[Response[IO]] = {
-    implicit val encoder: EntityEncoder[IO, CriticalError] = jsonEncoderOf[IO, CriticalError]
     logger.error(error)("An unhandled exception was thrown in a request") >> InternalServerError(internalError)
   }
 
   private def createMalformedJsonResponse(failure: MalformedMessageBodyFailure): IO[Response[IO]] = {
-    logger.warn(failure)("Request contained malformed json and was rejected") >> BadRequest()
+    val payload = GenericError(message = "There was a problem handling your request, it arrived malformed")
+
+    logger.warn(failure)("Request contained malformed json and was rejected") >> BadRequest(payload)
   }
+}
+
+object ServiceHelpers {
+  implicit val criticalErrorEncoder: EntityEncoder[IO, CriticalError] = jsonEncoderOf[IO, CriticalError]
+  implicit val genericErrorEncoder: EntityEncoder[IO, GenericError]   = jsonEncoderOf[IO, GenericError]
+  implicit val validationEncoder: EntityEncoder[IO, ValidationError]  = jsonEncoderOf[IO, ValidationError]
 }

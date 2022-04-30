@@ -1,13 +1,14 @@
-package endpoints
+package com.kelvin.whoseturn.web.test.endpoints
+
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import com.codahale.metrics.MetricRegistry
 import com.kelvin.whoseturn.entity.TodoItemEntity
-import com.kelvin.whoseturn.errors.CriticalError
-import com.kelvin.whoseturn.repositories.{RepositoryItem, TodoItemRepository}
-import com.kelvin.whoseturn.services.TodoStateService
-import com.kelvin.whoseturn.implicits.CirceTimestampEncoder._
-import com.kelvin.whoseturn.models.CreateTodoItemModel
+import com.kelvin.whoseturn.errors.http._
+import com.kelvin.whoseturn.errors.meta.BodyError
+import com.kelvin.whoseturn.web.repositories._
+import com.kelvin.whoseturn.web.services.TodoStateService
+import com.kelvin.whoseturn.web.models.CreateTodoItemModel
 import fs2.Stream
 import io.circe._
 import io.circe.generic.auto._
@@ -17,7 +18,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import testSupport.TodoItemsFixtures
+import com.kelvin.whoseturn.web.test.testSupport.TodoItemsFixtures
 
 class TodoStateServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with TodoItemsFixtures {
   import TodoStateServiceSpec._
@@ -37,13 +38,34 @@ class TodoStateServiceSpec extends AnyWordSpec with Matchers with ScalaFutures w
       }
     }
 
-    "return HTTP 400 when body is invalid" in {
+    "return HTTP 400 when body contains invalid fields" in {
       val context = TestContext(todoItemRepository = successfulMockedTodoItemRepo())
       withTodoService(context) { todoService =>
-        val request  = buildInvalidAddRequest
+        val request  = buildFailingValidationAddRequest
         val response = todoService(request).unsafeRunSync()
 
         response.status mustBe Status.BadRequest
+
+        val responseEntity = response.as[ValidationError].unsafeRunSync()
+        responseEntity.errorLocation mustBe BodyError
+
+        responseEntity.validatedFields must contain allOf (
+          ValidatedField(field = "title", message = "title is a required field"),
+          ValidatedField(field = "location", message = "location is a required field")
+        )
+      }
+    }
+
+    "return HTTP 400 when body is invalid Json" in {
+      val context = TestContext(todoItemRepository = successfulMockedTodoItemRepo())
+      withTodoService(context) { todoService =>
+        val request  = buildEmptyBodyAddRequest
+        val response = todoService(request).unsafeRunSync()
+
+        response.status mustBe Status.BadRequest
+
+        val responseEntity = response.as[GenericError].unsafeRunSync()
+        responseEntity.message mustBe "There was a problem handling your request, it arrived malformed"
       }
     }
 
@@ -70,6 +92,8 @@ object TodoStateServiceSpec extends MockFactory with TodoItemsFixtures with Matc
   implicit val createModelEncoder: EntityEncoder[IO, CreateTodoItemModel] = jsonEncoderOf[IO, CreateTodoItemModel]
   implicit val todoItemDecoder: EntityDecoder[IO, TodoItemEntity]         = jsonOf[IO, TodoItemEntity]
   implicit val criticalErrorDecoder: EntityDecoder[IO, CriticalError]     = jsonOf[IO, CriticalError]
+  implicit val genericErrorDecoder: EntityDecoder[IO, GenericError]       = jsonOf[IO, GenericError]
+  implicit val validationErrorDecoder: EntityDecoder[IO, ValidationError] = jsonOf[IO, ValidationError]
 
   def withTodoService[T](
       context: TestContext
@@ -108,7 +132,14 @@ object TodoStateServiceSpec extends MockFactory with TodoItemsFixtures with Matc
     Request(method = Method.PUT, uri = Uri.unsafeFromString("/add"), body = body)
   }
 
-  def buildInvalidAddRequest: Request[IO] = {
+  def buildFailingValidationAddRequest: Request[IO] = {
+    val createModel = CreateTodoItemModelFixture(title = "", location = "")
+    val body        = createModelEncoder.toEntity(createModel).body
+
+    Request(method = Method.PUT, uri = Uri.unsafeFromString("/add"), body = body)
+  }
+
+  def buildEmptyBodyAddRequest: Request[IO] = {
     Request(method = Method.PUT, uri = Uri.unsafeFromString("/add"))
   }
 

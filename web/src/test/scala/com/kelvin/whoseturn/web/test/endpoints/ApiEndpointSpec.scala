@@ -1,10 +1,10 @@
-package endpoints
+package com.kelvin.whoseturn.web.test.endpoints
 
 import cats.effect.unsafe.IORuntime
 import cats.effect._
 import com.codahale.metrics.MetricRegistry
-import com.kelvin.whoseturn.repositories.{ItemRepository, RepositoryItem}
-import com.kelvin.whoseturn.services.ApiService
+import com.kelvin.whoseturn.web.repositories.{ItemRepository, RepositoryItem}
+import com.kelvin.whoseturn.web.services.ApiService
 import io.circe.{Decoder, jawn}
 import io.circe.generic.semiauto.deriveDecoder
 import org.http4s._
@@ -22,7 +22,7 @@ class ApiEndpointSpec extends AnyWordSpec with Matchers with ScalaFutures {
   implicit val repositoryItemEntityDecoder: EntityDecoder[IO, RepositoryItem] = jsonOf[IO, RepositoryItem]
 
   "GET/ get" should {
-    "returns a repository item" in {
+    "returns a com.kelvin.whoseturn.web.test.repository item" in {
       withService() { service =>
         val request  = buildSuccessRequest()
         val response = service(request).unsafeRunSync()

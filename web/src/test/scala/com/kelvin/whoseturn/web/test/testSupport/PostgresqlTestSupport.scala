@@ -1,4 +1,4 @@
-package testSupport
+package com.kelvin.whoseturn.web.test.testSupport
 
 import cats._
 import cats.effect._

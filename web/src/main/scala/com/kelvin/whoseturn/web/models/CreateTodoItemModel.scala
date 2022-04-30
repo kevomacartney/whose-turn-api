@@ -1,4 +1,6 @@
-package com.kelvin.whoseturn.models
+package com.kelvin.whoseturn.web.models
+
+import com.kelvin.whoseturn.todo.Priority
 
 import java.sql.Timestamp
 import java.util.UUID
@@ -8,7 +10,7 @@ final case class CreateTodoItemModel(
     description: String,
     flagged: Boolean,
     category: String,
-    priority: String,
+    priority: Priority,
     location: String,
     active: Boolean
 )

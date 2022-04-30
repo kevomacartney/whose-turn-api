@@ -1,7 +1,8 @@
-import ItemRepositorySpec.withRepository
+package com.kelvin.whoseturn.web.test
+
 import cats.effect.unsafe.IORuntime
 import com.codahale.metrics.MetricRegistry
-import com.kelvin.whoseturn.repositories.ItemRepository
+import com.kelvin.whoseturn.web.repositories.ItemRepository
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -32,8 +33,8 @@ class ItemRepositorySpec extends AnyWordSpec with Matchers with ScalaFutures {
         repository.get("failure").unsafeRunSync()
         repository.get("success").unsafeRunSync()
 
-        metricRegistry.meter("item-repository.failure").getCount mustBe 1
-        metricRegistry.meter("item-repository.success").getCount mustBe 1
+        metricRegistry.meter("item-com.kelvin.whoseturn.web.test.repository.failure").getCount mustBe 1
+        metricRegistry.meter("item-com.kelvin.whoseturn.web.test.repository.success").getCount mustBe 1
       }(metricRegistry)
     }
   }

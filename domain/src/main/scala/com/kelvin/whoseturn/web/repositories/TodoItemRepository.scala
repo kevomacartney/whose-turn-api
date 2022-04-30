@@ -1,6 +1,6 @@
-package com.kelvin.whoseturn.repositories
+package com.kelvin.whoseturn.web.repositories
 
-import cats.data.EitherT
+import cats.data._
 import cats.effect.IO
 import com.kelvin.whoseturn.entity.TodoItemEntity
 import com.kelvin.whoseturn.errors.RepositoryError

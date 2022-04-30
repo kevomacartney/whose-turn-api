@@ -1,9 +1,9 @@
-package repository
+package com.kelvin.whoseturn.web.test.repository
 
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import com.kelvin.whoseturn.entity.TodoItemEntity
-import com.kelvin.whoseturn.repositories.PostgresqlTodoItemRepository
+import com.kelvin.whoseturn.web.repositories.PostgresqlTodoItemRepository
 import doobie._
 import doobie.implicits._
 import doobie.implicits.javasql._
@@ -14,7 +14,7 @@ import fs2._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import testSupport._
+import com.kelvin.whoseturn.web.test.testSupport._
 
 import java.util.UUID
 
