@@ -24,10 +24,27 @@ trait PostgresqlTestSupport extends Suite with BeforeAndAfterAll {
     container.stop()
   }
 
-  def initialisePostgresqlTable(implicit context: PostgresqlContext): String = {
+  def withPostgresql[T](f: Transactor[IO] => T)(implicit context: PostgresqlContext): T = {
+    try {
+      initialisePostgresqlTable()
+      f(getTransactor)
+    } finally {
+      deletePostgresqlTable()
+    }
+  }
+
+  private def initialisePostgresqlTable()(implicit context: PostgresqlContext): Unit = {
     implicit val transactor: Transactor[IO] = getTransactor
 
     executeCreateQuery(context.createScriptPath)
+  }
+
+  private def deletePostgresqlTable() = {
+    implicit val transactor: Transactor[IO] = getTransactor
+
+    sql"DROP TABLE IF EXISTS todo_items_items_v1".update.run
+      .transact(transactor)
+      .unsafeRunSync()
   }
 
   def getTransactor: Transactor[IO] = {
@@ -42,20 +59,15 @@ trait PostgresqlTestSupport extends Suite with BeforeAndAfterAll {
     )
   }
 
-  private def executeCreateQuery(scriptPath: String)(implicit transactor: Transactor[IO]): String = {
-    val source     = scala.io.Source.fromFile(scriptPath)
-    val identifier = UUID.randomUUID().toString.replace("-", "")
-    val tableName  = s"todo_items_$identifier"
-
-    val queryStr = source.mkString.replace("tableName_", tableName)
+  private def executeCreateQuery(scriptPath: String)(implicit transactor: Transactor[IO]): Unit = {
+    val source   = scala.io.Source.fromFile(scriptPath)
+    val queryStr = source.mkString
 
     Update(queryStr)
       .toUpdate0()
       .run
       .transact(transactor)
       .unsafeRunSync()
-
-    tableName
   }
 }
 

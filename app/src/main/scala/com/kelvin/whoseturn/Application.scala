@@ -12,16 +12,17 @@ import scala.io.{BufferedSource, Source}
 object Application extends LazyLogging {
 
   def run(env: String): IO[ExitCode] = {
-    val appConfigResource = for {
+    val appResource = for {
       secrets   <- loadSecrets
       appConfig <- loadConfig(secrets)
-    } yield appConfig
+      wiring    <- Wiring.create(appConfig)
+    } yield wiring
 
-    appConfigResource
-      .use { appConfig =>
-        Wiring.create(appConfig).take(1).compile.last.map {
-          case Some(exitCode) => exitCode
-          case _              => ExitCode.Error
+    appResource
+      .use { server =>
+        IO {
+          logger.info(s"Server running at address ${server.baseUri}")
+          ExitCode.Success
         }
       }
       .handleErrorWith { ex =>

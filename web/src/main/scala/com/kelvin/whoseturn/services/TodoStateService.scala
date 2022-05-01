@@ -21,7 +21,7 @@ import org.http4s.dsl.io._
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-class TodoStateService(implicit var metricRegistry: MetricRegistry, todoItemRepository: TodoItemRepository[IO])
+class TodoStateService(todoItemRepository: TodoItemRepository[IO])(implicit var metricRegistry: MetricRegistry)
     extends ServicePipes {
   import TodoStateService._
 

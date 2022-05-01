@@ -1,4 +1,4 @@
-CREATE TABLE tableName_
+CREATE TABLE todo_items_items_v1
 (
     id UUID PRIMARY KEY,
     title TEXT NOT NULL,

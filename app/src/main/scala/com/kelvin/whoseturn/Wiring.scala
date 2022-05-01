@@ -14,6 +14,7 @@ import org.http4s.metrics.dropwizard.Dropwizard
 import org.http4s.server._
 import org.http4s.server.middleware.Metrics
 import com.datastax.oss.driver.api.core.CqlSession
+import com.kelvin.whoseturn.repositories.{PostgresqlTodoItemRepository, TodoItemRepository}
 
 import java.lang.management.ManagementFactory.getPlatformMBeanServer
 import java.net.InetSocketAddress
@@ -21,16 +22,20 @@ import java.net.InetSocketAddress
 object Wiring extends LazyLogging {
   def create(
       appConfig: ApplicationConfig
-  ): Stream[IO, ExitCode] = {
+  ): Resource[IO, Server] = {
     logger.info("Starting app")
 
     implicit val metricRegistry: MetricRegistry = initialiseMetrics()
-    val service: HttpRoutes[IO]                 = createStateService(appConfig)
+    val todoItemRepositoryResource              = PostgresqlTodoItemRepository.resource(appConfig.postgresqlConfig)
 
-    BlazeServerBuilder[IO]
-      .bindHttp(appConfig.restConfig.port, "0.0.0.0")
-      .withHttpApp(service.orNotFound)
-      .serve
+    todoItemRepositoryResource.flatMap { todoItemRepository =>
+      val service: HttpRoutes[IO] = createStateService(appConfig, todoItemRepository)
+
+      BlazeServerBuilder[IO]
+        .bindHttp(appConfig.restConfig.port, "0.0.0.0")
+        .withHttpApp(service.orNotFound)
+        .resource
+    }
   }
 
   private def initialiseMetrics(): MetricRegistry = {
@@ -50,20 +55,13 @@ object Wiring extends LazyLogging {
   }
 
   private def createStateService(
-      appConfig: ApplicationConfig
+      appConfig: ApplicationConfig,
+      todoItemRepository: TodoItemRepository[IO]
   )(implicit metricRegistry: MetricRegistry): HttpRoutes[IO] = {
-    val httpService = new TodoStateService()
+    val httpService = new TodoStateService(todoItemRepository)
     val services    = httpService.add()
     val server      = Router(s"/api/${appConfig.restConfig.apiVersion}" -> services)
 
     Metrics[IO](Dropwizard(metricRegistry, "server"))(server)
-  }
-
-  private def createCassandraSession(config: CassandraConfig): CqlSession = {
-    val contactPoint = InetSocketAddress.createUnresolved(config.contactPoint, config.port)
-    val session      = CqlSession.builder().addContactPoint(contactPoint).build()
-
-    logger.info(s"Created a Cassandra connection to [endpoint=${contactPoint.toString}]")
-    session
   }
 }
