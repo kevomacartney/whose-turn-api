@@ -1,6 +1,6 @@
 package com.kelvin.whoseturn.e2e
 
-import com.kelvin.whoseturn.e2e.support.TestApplication
+import com.kelvin.whoseturn.test.support.TestApplication
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.featurespec.AnyFeatureSpec
 import io.circe.optics.JsonPath.root

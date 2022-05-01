@@ -65,11 +65,14 @@ object Dependencies {
   }
 
   object Testing {
-    lazy val testFramework = "org.scalatest" %% "scalatest" % "3.2.9" % "test"
+    lazy val testFramework     = "org.scalatest" %% "scalatest" % "3.2.9" % Test
+    lazy val testMockFramework = "org.scalamock" %% "scalamock" % "5.1.0" % Test
 
-    lazy val testContainer              = "com.dimafeng"       %% "testcontainers-scala-scalatest"  % "0.39.12"
-    lazy val `testContainer-cassandra`  = "org.testcontainers" % "cassandra"                        % "1.16.3"
-    lazy val `testContainer-postgresql` = "com.dimafeng"       %% "testcontainers-scala-postgresql" % "0.40.0"
+    lazy val testContainer              = "com.dimafeng"                %% "testcontainers-scala-scalatest"  % "0.39.12"
+    lazy val `testContainer-cassandra`  = "org.testcontainers"          % "cassandra"                        % "1.16.3"
+    lazy val `testContainer-postgresql` = "com.dimafeng"                %% "testcontainers-scala-postgresql" % "0.40.0"
+    lazy val `testContainer-kafka`      = "com.dimafeng"                %% "testcontainers-scala-kafka"      % "0.40.5"
+    lazy val simpleHttpClient           = "com.softwaremill.sttp.tapir" %% "tapir-sttp-client"               % "1.0.0-M6"
   }
 
   object Netty {
@@ -98,5 +101,15 @@ object Dependencies {
     val metricsCore = "io.dropwizard.metrics" % "metrics-core" % dropWizardMetricsVersion
     val metricsJson = "io.dropwizard.metrics" % "metrics-json" % dropWizardMetricsVersion
     val metricsJvm  = "io.dropwizard.metrics" % "metrics-jvm"  % dropWizardMetricsVersion
+  }
+
+  object Kafka {
+    private val kafkaVersion    = "3.1.0"
+    private val fs2KafkaVersion = "2.5.0-M3"
+
+    val `kafka-clients`    = "org.apache.kafka" % "kafka-clients"         % kafkaVersion
+    val `kafka-avro`       = "io.confluent"     % "kafka-avro-serializer" % "6.2.2"
+    val `fs2-kafka`        = "com.github.fd4s"  %% "fs2-kafka"            % fs2KafkaVersion
+    val `fs2-kafka-vulcan` = "com.github.fd4s"  %% "fs2-kafka-vulcan"     % fs2KafkaVersion
   }
 }

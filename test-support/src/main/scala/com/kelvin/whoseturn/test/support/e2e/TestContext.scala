@@ -1,9 +1,9 @@
-package com.kelvin.whoseturn.e2e.support
+package com.kelvin.whoseturn.test.support.e2e
 
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
-import org.http4s.client._
-import org.http4s._
+import org.http4s.client.{Client, JavaNetClientBuilder}
+import org.http4s.{Method, Request, Response, Uri}
 
 final case class TestContext(serverPort: Int) {
   val serverUrl              = s"127.0.0.1:$serverPort"

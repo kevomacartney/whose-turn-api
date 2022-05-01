@@ -1,8 +1,9 @@
-package com.kelvin.whoseturn.e2e.support
+package com.kelvin.whoseturn.test.support
 
 import cats.effect._
 import cats.effect.unsafe.implicits.global
 import com.kelvin.whoseturn.Application
+import com.kelvin.whoseturn.test.support.e2e.TestContext
 import io.circe._
 import org.http4s._
 import org.http4s.circe._

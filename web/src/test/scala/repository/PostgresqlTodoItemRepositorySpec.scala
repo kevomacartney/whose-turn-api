@@ -34,12 +34,7 @@ class PostgresqlTodoItemRepositorySpec
       withPostgresqlTodoItemRepository(table) { repo =>
         val writtenEntity = TodoItemEntityFixture().copy(id = UUID.randomUUID())
 
-        Stream
-          .eval(IO(writtenEntity))
-          .through(repo.addItem)
-          .compile
-          .last
-          .unsafeRunSync()
+        repo.add(writtenEntity).unsafeRunSync()
 
         val entity: TodoItemEntity = getTodoItemById(entityId = writtenEntity.id, tableName = table)
 
@@ -57,7 +52,7 @@ class PostgresqlTodoItemRepositorySpec
 
         val getResult = Stream
           .eval(IO(writtenEntity.id))
-          .through(repo.getItem)
+          .through(repo.get)
           .compile
           .last
           .unsafeRunSync()
@@ -79,11 +74,10 @@ class PostgresqlTodoItemRepositorySpec
 
         Stream
           .eval(IO(updatedEntity))
-          .through(repo.updateItem(writtenEntity.id))
+          .through(repo.update(writtenEntity.id))
           .compile
           .last
           .unsafeRunSync()
-          .get
 
         val getResult = getTodoItemById(writtenEntity.id, table)
 

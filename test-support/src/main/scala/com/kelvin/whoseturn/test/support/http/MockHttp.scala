@@ -1,4 +1,4 @@
-package com.kelvin.whoseturn.e2e.support.http
+package com.kelvin.whoseturn.test.support.http
 
 import java.net.ServerSocket
 

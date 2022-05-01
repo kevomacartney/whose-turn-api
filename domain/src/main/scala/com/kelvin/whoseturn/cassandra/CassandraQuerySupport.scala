@@ -7,8 +7,6 @@ import com.datastax.oss.driver.api.core.cql.{BoundStatement, Row, SimpleStatemen
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder.{bindMarker, selectFrom}
 import com.kelvin.whoseturn.entity.TodoItemEntity
 import fs2._
-import io.circe.fs2._
-import io.circe.generic.auto._
 
 object CassandraQuerySupport {
 

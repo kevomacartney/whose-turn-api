@@ -1,4 +1,5 @@
 # whose-turn-api
+This repo is home to the `Todo State Service` which is used to create and update Todo item states.
 
 Description
 -----------

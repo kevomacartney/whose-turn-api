@@ -1,16 +1,18 @@
 import Dependencies._
+import sbt.Keys.resolvers
 import sbt._
+import Resolvers._
 
 lazy val `whose-turn-api` = (project in file("."))
   .settings(
     ThisBuild / scalaVersion := "2.13.5",
     ThisBuild / organization := "Kelvin Macartney",
-    ThisBuild / version := "0.1"
+    ThisBuild / version := "0.1",
   )
   .aggregate(`domain`, `app`, `end-to-end`, `test-support`, `web`)
 
 lazy val commonSettings = Seq(
-  resolvers += "Confluent" at "https://packages.confluent.io/maven/",
+  resolvers := whoseTurnResolvers,
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.0" cross CrossVersion.full),
   libraryDependencies ++= List(
     Cats.cats,
@@ -19,7 +21,8 @@ lazy val commonSettings = Seq(
     Logging.logBack,
     Logging.catsLogging,
     Time.nScalaTime,
-    Testing.testFramework
+    Testing.testFramework,
+    Testing.testMockFramework
   ),
   dependencyOverrides ++= Dependencies.overrides,
   publish := {},
@@ -28,6 +31,7 @@ lazy val commonSettings = Seq(
 )
 
 lazy val `domain` = (project in file("./domain"))
+  .dependsOn(`kafka`, `test-support`)
   .settings(commonSettings)
   .settings(
     name := "domain",
@@ -35,7 +39,8 @@ lazy val `domain` = (project in file("./domain"))
       Cassandra.dataStaxQueryBuilder,
       Circe.circeFs2,
       Fs2.fs2Core,
-      Metrics.metricsCore
+      Metrics.metricsCore,
+      Kafka.`kafka-clients`
     )
   )
 
@@ -70,8 +75,18 @@ lazy val `end-to-end` = (project in file("./end-to-end"))
     )
   )
 
+lazy val `kafka` = (project in file("./kafka"))
+  .settings(commonSettings)
+  .settings(
+    name := "kafka",
+    libraryDependencies ++= List(
+      Kafka.`fs2-kafka`,
+      Kafka.`fs2-kafka-vulcan`,
+      Testing.simpleHttpClient % Test
+    )
+  )
+
 lazy val `test-support` = (project in file("./test-support"))
-  .dependsOn(`domain`)
   .settings(commonSettings)
   .settings(Http4s.http4sAll)
   .settings(
@@ -79,7 +94,13 @@ lazy val `test-support` = (project in file("./test-support"))
     libraryDependencies ++= List(
       Metrics.metricsCore,
       Metrics.metricsJson,
-      Metrics.metricsJvm
+      Metrics.metricsJvm,
+      Kafka.`kafka-clients`,
+      Kafka.`fs2-kafka`,
+      Kafka.`kafka-avro`,
+      Kafka.`kafka-avro`,
+      Testing.`testContainer-kafka`,
+      Testing.simpleHttpClient
     )
   )
 
