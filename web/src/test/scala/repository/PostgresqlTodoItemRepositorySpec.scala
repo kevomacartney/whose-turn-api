@@ -5,6 +5,7 @@ import cats.effect.unsafe.implicits.global
 import com.github.nscala_time.time.Imports.DateTimeZone
 import com.kelvin.whoseturn.entity.TodoItemEntity
 import com.kelvin.whoseturn.repositories.PostgresqlTodoItemRepository
+import com.kelvin.whoseturn.support.test.postgresql._
 import doobie._
 import doobie.implicits._
 import doobie.implicits.javasql._

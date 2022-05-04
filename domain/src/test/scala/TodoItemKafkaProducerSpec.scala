@@ -4,8 +4,8 @@ import cats.implicits._
 import com.kelvin.whoseturn.config.KafkaProducerConfig
 import com.kelvin.whoseturn.errors.kafka.ProducerError
 import com.kelvin.whoseturn.kafka.producer.TodoItemKafkaProducer
-import com.kelvin.whoseturn.test.support.kafka.KafkaTestSupport._
-import com.kelvin.whoseturn.test.support.kafka.{KafkaTestSupport, KafkaTestSupportConfig}
+import com.kelvin.whoseturn.support.test.kafka.KafkaTestSupport._
+import com.kelvin.whoseturn.support.test.kafka._
 import fixtures.TodoItemUserActionEventFixture
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec

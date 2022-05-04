@@ -1,4 +1,4 @@
-package com.kelvin.whoseturn.test.support.kafka
+package com.kelvin.whoseturn.support.test.kafka
 
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global

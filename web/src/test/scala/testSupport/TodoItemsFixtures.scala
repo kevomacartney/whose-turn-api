@@ -2,6 +2,7 @@ package testSupport
 
 import com.github.nscala_time.time.Imports.DateTimeZone
 import com.kelvin.whoseturn.entity.TodoItemEntity
+import com.kelvin.whoseturn.models.CreateTodoItemModel
 import org.joda.time.DateTime
 
 import java.util.UUID
@@ -9,6 +10,18 @@ import java.util.UUID
 trait TodoItemsFixtures {
   val CreateTodoItemsTableScriptPath: String = getClass.getResource("/create_todo_items.cql").getPath
   val TodoItemsJsonDataPath: String          = getClass.getResource("/todo_items_dump.json").getPath
+
+  def CreateTodoItemModelFixture(
+      title: String = "Laundry pods",
+      description: String = "Ariel laundry pods, 38 box",
+      flagged: Boolean = false,
+      category: String = "Kitchen",
+      priority: String = "low",
+      location: String = "London",
+      active: Boolean = true
+  ): CreateTodoItemModel = {
+    CreateTodoItemModel(title, description, flagged, category, priority, location, active)
+  }
 
   def TodoItemEntityFixture(
       id: UUID = UUID.randomUUID(),

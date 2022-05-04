@@ -7,7 +7,7 @@ lazy val `whose-turn-api` = (project in file("."))
   .settings(
     ThisBuild / scalaVersion := "2.13.5",
     ThisBuild / organization := "Kelvin Macartney",
-    ThisBuild / version := "0.1",
+    ThisBuild / version := "0.1"
   )
   .aggregate(`domain`, `app`, `end-to-end`, `test-support`, `web`)
 
@@ -21,8 +21,8 @@ lazy val commonSettings = Seq(
     Logging.logBack,
     Logging.catsLogging,
     Time.nScalaTime,
-    Testing.testFramework,
-    Testing.testMockFramework
+    Testing.testFramework % "test",
+    Testing.testMockFramework % "test"
   ),
   dependencyOverrides ++= Dependencies.overrides,
   publish := {},
@@ -75,37 +75,8 @@ lazy val `end-to-end` = (project in file("./end-to-end"))
     )
   )
 
-lazy val `kafka` = (project in file("./kafka"))
-  .settings(commonSettings)
-  .settings(
-    name := "kafka",
-    libraryDependencies ++= List(
-      Kafka.`fs2-kafka`,
-      Kafka.`fs2-kafka-vulcan`,
-      Testing.simpleHttpClient % Test
-    )
-  )
-
-lazy val `test-support` = (project in file("./test-support"))
-  .settings(commonSettings)
-  .settings(Http4s.http4sAll)
-  .settings(
-    name := "test-support",
-    libraryDependencies ++= List(
-      Metrics.metricsCore,
-      Metrics.metricsJson,
-      Metrics.metricsJvm,
-      Kafka.`kafka-clients`,
-      Kafka.`fs2-kafka`,
-      Kafka.`kafka-avro`,
-      Kafka.`kafka-avro`,
-      Testing.`testContainer-kafka`,
-      Testing.simpleHttpClient
-    )
-  )
-
 lazy val `web` = (project in file("./web"))
-  .dependsOn(`domain`)
+  .dependsOn(`domain`, `test-support`)
   .settings(commonSettings)
   .settings(Http4s.http4sAll)
   .settings(
@@ -127,5 +98,38 @@ lazy val `web` = (project in file("./web"))
       Testing.testContainer              % Test,
       Testing.`testContainer-cassandra`  % Test,
       Testing.`testContainer-postgresql` % Test
+    )
+  )
+
+lazy val `test-support` = (project in file("./test-support"))
+  .settings(commonSettings)
+  .settings(Http4s.http4sAll)
+  .settings(
+    name := "test-support",
+    libraryDependencies ++= List(
+      Metrics.metricsCore,
+      Metrics.metricsJson,
+      Metrics.metricsJvm,
+      Kafka.`kafka-clients`,
+      Kafka.`fs2-kafka`,
+      Kafka.`kafka-avro`,
+      Kafka.`kafka-avro`,
+      Doobie.`doobie-core`,
+      Doobie.`doobie-postgresql`,
+      Testing.`testContainer-kafka`,
+      Testing.simpleHttpClient,
+      Testing.`testContainer-postgresql`,
+      Doobie.`doobie-scalatest` % "test",
+    )
+  )
+
+lazy val `kafka` = (project in file("./kafka"))
+  .settings(commonSettings)
+  .settings(
+    name := "kafka",
+    libraryDependencies ++= List(
+      Kafka.`fs2-kafka`,
+      Kafka.`fs2-kafka-vulcan`,
+      Testing.simpleHttpClient % Test
     )
   )

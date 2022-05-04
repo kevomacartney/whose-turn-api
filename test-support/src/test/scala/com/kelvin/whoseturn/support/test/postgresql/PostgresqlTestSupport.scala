@@ -1,27 +1,21 @@
-package testSupport
+package com.kelvin.whoseturn.support.test.postgresql
 
-import cats._
 import cats.effect._
-import cats.implicits._
+import cats.effect.unsafe.implicits.global
 import doobie._
 import doobie.implicits._
 import org.scalatest._
 import org.testcontainers.containers.PostgreSQLContainer
-import cats.effect.unsafe.implicits.global
-import com.kelvin.whoseturn.entity.TodoItemEntity
-import doobie.util.transactor.Transactor.Aux
-
-import java.util.UUID
 
 trait PostgresqlTestSupport extends Suite with BeforeAndAfterAll {
-  implicit val container: PostgreSQLContainer[Nothing] = new PostgreSQLContainer("postgres")
+  implicit val PostgreSqlTestContainer: PostgreSQLContainer[Nothing] = new PostgreSQLContainer("postgres")
 
   override def beforeAll(): Unit = {
-    container.start()
+    PostgreSqlTestContainer.start()
   }
 
   override def afterAll(): Unit = {
-    container.stop()
+    PostgreSqlTestContainer.stop()
   }
 
   def withPostgresql[T](f: Transactor[IO] => T)(implicit context: PostgresqlContext): T = {
@@ -48,7 +42,7 @@ trait PostgresqlTestSupport extends Suite with BeforeAndAfterAll {
   }
 
   def getTransactor: Transactor[IO] = {
-    val port        = container.getMappedPort(5432)
+    val port        = PostgreSqlTestContainer.getMappedPort(5432)
     val databaseUrl = s"jdbc:postgresql://localhost:$port/test"
 
     Transactor.fromDriverManager[IO](
