@@ -4,10 +4,8 @@ import cats._
 import cats.implicits._
 import cats.data._
 import cats.effect.IO
-import com.kelvin.whoseturn.entity.TodoItemEntity
 import com.kelvin.whoseturn.errors._
 import com.kelvin.whoseturn.errors.ValidationError
-import com.kelvin.whoseturn.models.CreateTodoItemModel
 import fs2.Pipe
 import io.circe.Json
 import io.circe.generic.auto._
@@ -57,7 +55,7 @@ trait ServicePipes {
   private def createValidationResponse(validationErr: ValidationError): IO[Response[IO]] = {
     implicit val encoder: EntityEncoder[IO, ValidationError] = jsonEncoderOf[IO, ValidationError]
     logger.warn(
-      s"There was a validation error for request [fields=${validationErr.field}, location=${validationErr.errorLocation}]"
+      s"There was a validation error for request [fields=${validationErr.validatedFields.mkString(",")}, location=${validationErr.errorLocation}]"
     ) >> BadRequest(validationErr)
   }
 

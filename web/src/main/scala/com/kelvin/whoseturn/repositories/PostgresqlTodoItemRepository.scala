@@ -10,47 +10,53 @@ import cats.data._
 import cats.syntax._
 import cats.implicits._
 import cats.effect._
+import com.github.nscala_time.time.Imports.DateTimeZone
 import com.kelvin.whoseturn.config.PostgresqlConfig
-import com.kelvin.whoseturn.entity.TodoItemEntity
-import com.kelvin.whoseturn.errors.RepositoryError
-import com.typesafe.scalalogging.LazyLogging
+import com.kelvin.whoseturn.entities.TodoItemEntity
+import com.kelvin.whoseturn.errors.repostiory.PostgreSqlError
+import com.kelvin.whoseturn.errors._
+import com.typesafe.scalalogging.{CanLog, LazyLogging}
 import fs2._
-import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import org.joda.time.DateTime
 
+import java.sql.SQLException
 import java.util.UUID
 
-class PostgresqlTodoItemRepository(tableName: String, implicit val transactor: Transactor[IO])
-    extends TodoItemRepository[IO] {
+class PostgresqlTodoItemRepository(implicit transactor: Transactor[IO]) extends TodoItemRepository[IO] {
   import PostgresqlTodoItemRepository._
 
-  override def addItem(todoItemEntity: TodoItemEntity): IO[TodoItemEntity] = {
+  override def add(todoItemEntity: TodoItemEntity): IO[Either[Error, TodoItemEntity]] = {
     Stream
       .eval(IO(todoItemEntity))
-      .through(toInsertQuery(tableName))
+      .through(toInsertQuery)
       .through(executeUpdateQuery)
-      .map(_ => todoItemEntity)
+      .map(_ => todoItemEntity.asRight[Error])
       .compile
       .lastOrError
   }
 
-  override def getItem: Pipe[IO, UUID, TodoItemEntity] = { stream =>
+  override def get: Pipe[IO, UUID, TodoItemEntity] = { stream =>
     stream
-      .through(toSelectQuery(tableName))
+      .through(toSelectQuery)
       .through(executeSelectQuery)
   }
 
-  override def updateItem(id: UUID): Pipe[IO, TodoItemEntity, TodoItemEntity] = { stream =>
+  override def update(id: UUID): Pipe[IO, TodoItemEntity, TodoItemEntity] = { stream =>
     stream
-      .through(toUpdateQuery(tableName))
+      .through(toUpdateQuery)
       .through(executeUpdateQuery)
       .map(_ => id)
-      .through(getItem)
+      .through(get)
   }
 }
 
-object PostgresqlTodoItemRepository {
-  def apply(postgresqlConfig: PostgresqlConfig): Resource[IO, PostgresqlTodoItemRepository] = {
+object PostgresqlTodoItemRepository extends LazyLogging {
+  case class CorrelationId(value: String)
+  implicit case object CanLogCorrelationId extends CanLog[CorrelationId] {
+    override def logMessage(originalMsg: String, a: CorrelationId): String = s"${a.value} $originalMsg"
+  }
+
+  def resource(postgresqlConfig: PostgresqlConfig): Resource[IO, PostgresqlTodoItemRepository] = {
     val acquire = IO {
       val databaseUrl = s"jdbc:postgresql://localhost:${postgresqlConfig.port}/test"
 
@@ -66,35 +72,46 @@ object PostgresqlTodoItemRepository {
 
     Resource
       .make(acquire)(release)
-      .map(new PostgresqlTodoItemRepository(postgresqlConfig.table, _))
+      .map(new PostgresqlTodoItemRepository()(_))
   }
 
-  protected def executeUpdateQuery(implicit transactor: Transactor[IO]): Pipe[IO, ConnectionIO[Int], Int] =
-    _.flatMap(con => Stream.eval(con.transact(transactor)))
-
-  protected def toInsertQuery(tableName: String): Pipe[IO, TodoItemEntity, ConnectionIO[Int]] =
-    _.map { item =>
-      val query =
-        s"""
-          insert into $tableName
-          (id, title, createdBy, createdOn, lastUpdate, description, flagged, category,priority, location, active)
-          values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       """
-      Update[TodoItemEntity](query).toUpdate0(item).run
+  protected def executeUpdateQuery(
+      implicit transactor: Transactor[IO]
+  ): Pipe[IO, ConnectionIO[Int], Either[Error, Int]] =
+    _.flatMap { con =>
+      Stream
+        .eval(con.transact(transactor).attemptSql)
+        .map(_.leftFlatMap(handleUpdateQueryError))
     }
 
-  protected def toSelectQuery(tableName: String): Pipe[IO, UUID, ConnectionIO[TodoItemEntity]] =
-    _.map { uuid =>
-      val query =
-        s"""
-          select id, title, createdBy, createdOn, lastUpdate, description, flagged, category, priority, location, active
-          from $tableName
-          where id = ?
-        """
+  protected def toInsertQuery: Pipe[IO, TodoItemEntity, ConnectionIO[Int]] =
+    _.map { item =>
+      sql"""
+          insert into todo_items_items_v1
+          (id, title, createdBy, createdOn, lastUpdate, description, flagged, category, priority, location, active)
+          values (
+                  ${item.id},
+                  ${item.title},
+                  ${item.createdBy},
+                  ${item.createdOn},
+                  ${item.lastUpdate},
+                  ${item.description},
+                  ${item.flagged},
+                  ${item.category},
+                  ${item.priority},
+                  ${item.location},
+                  ${item.active}
+          )
+       """.update.run
+    }
 
-      Query[UUID, TodoItemEntity](query)
-        .toQuery0(uuid)
-        .unique
+  protected def toSelectQuery: Pipe[IO, UUID, ConnectionIO[TodoItemEntity]] =
+    _.map { uuid =>
+      sql"""
+          select id, title, createdBy, createdOn, lastUpdate, description, flagged, category, priority, location, active
+          from todo_items_items_v1
+          where id = $uuid
+        """.query[TodoItemEntity].unique
     }
 
   protected def executeSelectQuery(
@@ -102,16 +119,36 @@ object PostgresqlTodoItemRepository {
   ): Pipe[IO, ConnectionIO[TodoItemEntity], TodoItemEntity] =
     _.flatMap(con => Stream.eval(con.transact(transactor)))
 
-  protected def toUpdateQuery(tableName: String): Pipe[IO, TodoItemEntity, ConnectionIO[Int]] = _.map { entity =>
+  protected def toUpdateQuery: Pipe[IO, TodoItemEntity, ConnectionIO[Int]] = _.map { entity =>
+    val updatedOn = DateTime.now().toDateTime(DateTimeZone.UTC)
+    val updatedOnTimestamp = new java.sql.Timestamp(updatedOn.getMillis)
+
     val query =
-      s"""
-        update $tableName
-          set title=?, createdBy=?, createdOn=?, lastUpdate=?, description=?, flagged=?, category=?, priority=?, location=?, active=?
-        where id = ?
+      sql"""
+        update todo_items_items_v1
+          set 
+              title=${entity.title},
+              lastUpdate=${updatedOnTimestamp},
+              description=${entity.description},
+              flagged=${entity.flagged},
+              category=${entity.category},
+              priority=${entity.priority},
+              location=${entity.location}
+        where id=${entity.id}
         """
 
-    Update[TodoItemEntity](query)
-      .toUpdate0(entity)
-      .run
+    query.update.run
+  }
+
+  private def handleUpdateQueryError[T](sqlException: SQLException): Either[Error, T] = {
+    logger.error(
+      s"There was an error while executing update query on todo item [sqlState=${sqlException.getSQLState}]",
+      sqlException
+    )
+
+    PostgreSqlError(
+      cause = DatabaseError,
+      message = "Could not update update entity due to unexpected error"
+    ).asLeft
   }
 }

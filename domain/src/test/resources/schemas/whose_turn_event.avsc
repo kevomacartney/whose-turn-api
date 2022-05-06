@@ -1,0 +1,12 @@
+{
+  "type": "record",
+  "namespace": "com.kelvin.whoseturn.events.user",
+  "name": "TodoItemUserActionEvent",
+  "fields": [
+    {
+      "name": "eventId",
+      "type": "string",
+      "logicalType": "uuid"
+    }
+  ]
+}

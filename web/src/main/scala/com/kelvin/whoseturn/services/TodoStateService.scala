@@ -7,8 +7,8 @@ import com.codahale.metrics.MetricRegistry
 import com.kelvin.whoseturn.repositories.TodoItemRepository
 import cats.effect.IO
 import com.codahale.metrics.MetricRegistry
-import com.kelvin.whoseturn.entity.TodoItemEntity
-import com.kelvin.whoseturn.errors.ValidationError
+import com.kelvin.whoseturn.entities.TodoItemEntity
+import com.kelvin.whoseturn.errors.{ValidatedField, ValidationError}
 import com.kelvin.whoseturn.models.CreateTodoItemModel
 import com.typesafe.scalalogging.LazyLogging
 import io.circe.Json
@@ -21,47 +21,43 @@ import org.http4s.dsl.io._
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-class TodoStateService(implicit var metricRegistry: MetricRegistry, todoItemRepository: TodoItemRepository[IO])
+class TodoStateService(todoItemRepository: TodoItemRepository[IO])(implicit var metricRegistry: MetricRegistry)
     extends ServicePipes {
   import TodoStateService._
 
   private val logger: Logger[IO]                               = Slf4jLogger.getLogger[IO]
   implicit val decoder: EntityDecoder[IO, CreateTodoItemModel] = jsonOf[IO, CreateTodoItemModel]
-  implicit val encoder: EntityEncoder[IO, TodoItemEntity]      = jsonEncoderOf[IO, TodoItemEntity]
 
   def add(): HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ PUT -> Root / "add" =>
-      val validatedModel = req
+      req
         .as[CreateTodoItemModel]
         .map(applyValidation)
 
-      val resp = Ok("")
+      Ok("")
   }
 
   def applyValidation(createdTodoModel: CreateTodoItemModel): ValidatedNel[ValidationError, TodoItemEntity] = ???
 
-  def applyToRepository(validatedModel: ValidatedNel[ValidatedField, TodoItemEntity]) = {
-    val validationError = ValidatonError
-    validatedModel.fold(
-      error => createValidationResponse(error)
-    )
-  }
+  def applyToRepository(validatedModel: ValidatedNel[ValidatedField, TodoItemEntity]) = ???
 
   def addTodoEntityToRepo
       : Pipe[IO, ValidatedNel[ValidationError, TodoItemEntity], ValidatedNel[ValidatedField, TodoItemEntity]] =
-    stream => {}
+    stream => ???
 
-  def handleError(error: Throwable): Stream[IO, Json] = {}
+  def handleError(error: Throwable): Stream[IO, Json] = ???
 }
 
-object TodoStateService  {
-  private val logger: Logger[IO]                               = Slf4jLogger.getLogger[IO]
+object TodoStateService {
+  private val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
   private def createValidationResponse(validationError: ValidationError): IO[Response[IO]] = {
     implicit val encoder: EntityEncoder[IO, ValidationError] = jsonEncoderOf[IO, ValidationError]
 
-    val fields = validationError.validatedFields.map(_.field).mkString(",")
+    val fields   = validationError.validatedFields.map(_.field).mkString(",")
     val location = validationError.errorLocation
-    logger.warn(s"There was a validation error for request [fields=$fields, location=$location]") >> BadRequest(validationError)
+    logger.warn(s"There was a validation error for request [fields=$fields, location=$location]") >> BadRequest(
+      validationError
+    )
   }
 }

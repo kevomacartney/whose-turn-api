@@ -1,6 +1,6 @@
 package com.kelvin.whoseturn.errors.meta
 
-import com.usl.inventory.service.exceptions._
+import com.kelvin.whoseturn.exceptions.EncodingException
 import io.circe._
 
 trait ErrorType

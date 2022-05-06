@@ -1,5 +1,7 @@
 import Dependencies._
+import sbt.Keys.resolvers
 import sbt._
+import Resolvers._
 
 lazy val `whose-turn-api` = (project in file("."))
   .settings(
@@ -10,7 +12,7 @@ lazy val `whose-turn-api` = (project in file("."))
   .aggregate(`domain`, `app`, `end-to-end`, `test-support`, `web`)
 
 lazy val commonSettings = Seq(
-  resolvers += "Confluent" at "https://packages.confluent.io/maven/",
+  resolvers := whoseTurnResolvers,
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.0" cross CrossVersion.full),
   libraryDependencies ++= List(
     Cats.cats,
@@ -18,8 +20,7 @@ lazy val commonSettings = Seq(
     Logging.scalaLogging,
     Logging.logBack,
     Logging.catsLogging,
-    Time.nScalaTime,
-    Testing.testFramework
+    Time.nScalaTime
   ),
   dependencyOverrides ++= Dependencies.overrides,
   publish := {},
@@ -27,15 +28,27 @@ lazy val commonSettings = Seq(
   Test / fork := true
 )
 
+lazy val testingFramework = Seq(
+  libraryDependencies ++= List(
+    Testing.testFramework     % Test,
+    Testing.testMockFramework % Test,
+    Testing.testContainer     % Test,
+    Testing.simpleHttpClient  % Test,
+    Doobie.`doobie-scalatest` % Test
+  )
+)
+
 lazy val `domain` = (project in file("./domain"))
-  .settings(commonSettings)
+  .dependsOn(`kafka`, `test-support`)
+  .settings(commonSettings, testingFramework)
   .settings(
     name := "domain",
     libraryDependencies ++= List(
       Cassandra.dataStaxQueryBuilder,
       Circe.circeFs2,
       Fs2.fs2Core,
-      Metrics.metricsCore
+      Metrics.metricsCore,
+      Kafka.`kafka-clients`
     )
   )
 
@@ -56,7 +69,7 @@ lazy val `app` = (project in file("./app"))
 
 lazy val `end-to-end` = (project in file("./end-to-end"))
   .dependsOn(`test-support`, `domain`, `app`)
-  .settings(commonSettings)
+  .settings(commonSettings, testingFramework)
   .settings(Http4s.http4sAll)
   .settings(
     name := "end-to-end",
@@ -70,22 +83,9 @@ lazy val `end-to-end` = (project in file("./end-to-end"))
     )
   )
 
-lazy val `test-support` = (project in file("./test-support"))
-  .dependsOn(`domain`)
-  .settings(commonSettings)
-  .settings(Http4s.http4sAll)
-  .settings(
-    name := "test-support",
-    libraryDependencies ++= List(
-      Metrics.metricsCore,
-      Metrics.metricsJson,
-      Metrics.metricsJvm
-    )
-  )
-
 lazy val `web` = (project in file("./web"))
-  .dependsOn(`domain`)
-  .settings(commonSettings)
+  .dependsOn(`domain`, `web-domain`, `test-support`)
+  .settings(commonSettings, testingFramework)
   .settings(Http4s.http4sAll)
   .settings(
     name := "web",
@@ -101,10 +101,48 @@ lazy val `web` = (project in file("./web"))
       Cassandra.dataStax,
       Cassandra.dataStaxQueryBuilder,
       Doobie.`doobie-core`,
-      Doobie.`doobie-postgresql`,
-      Doobie.`doobie-scalatest`          % Test,
-      Testing.testContainer              % Test,
-      Testing.`testContainer-cassandra`  % Test,
-      Testing.`testContainer-postgresql` % Test
+      Doobie.`doobie-postgresql`
     )
+  )
+
+lazy val `test-support` = (project in file("./test-support"))
+  .dependsOn(`web-domain`)
+  .settings(commonSettings)
+  .settings(Http4s.http4sAll)
+  .settings(
+    name := "test-support",
+    libraryDependencies ++= List(
+      Metrics.metricsCore,
+      Metrics.metricsJson,
+      Metrics.metricsJvm,
+      Kafka.`kafka-clients`,
+      Kafka.`fs2-kafka`,
+      Kafka.`kafka-avro`,
+      Kafka.`kafka-avro`,
+      Doobie.`doobie-core`,
+      Doobie.`doobie-postgresql`,
+      Testing.`testContainer-kafka`,
+      Testing.`testContainer-postgresql`,
+      Testing.testFramework,
+      Testing.testMockFramework,
+      Testing.testContainer,
+      Testing.simpleHttpClient,
+      Doobie.`doobie-scalatest`
+    )
+  )
+
+lazy val `kafka` = (project in file("./kafka"))
+  .settings(commonSettings)
+  .settings(
+    name := "kafka",
+    libraryDependencies ++= List(
+      Kafka.`fs2-kafka`,
+      Kafka.`fs2-kafka-vulcan`
+    )
+  )
+
+lazy val `web-domain` = (project in file("./web-domain"))
+  .settings(commonSettings)
+  .settings(
+    name := "web-domain"
   )
