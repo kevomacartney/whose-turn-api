@@ -3,8 +3,8 @@ package com.kelvin.whoseturn.support
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import com.kelvin.whoseturn.Application
-import com.kelvin.whoseturn.support.test.e2e.TestContext
-import com.kelvin.whoseturn.support.test.postgresql.{PostgresqlContext, PostgresqlTestSupport}
+import com.kelvin.whoseturn.support.e2e.TestContext
+import com.kelvin.whoseturn.support.postgresql.{PostgresqlContext, PostgresqlTestSupport}
 import com.typesafe.config.{Config, ConfigFactory}
 import io.circe.Json
 import org.http4s.circe.jsonDecoder

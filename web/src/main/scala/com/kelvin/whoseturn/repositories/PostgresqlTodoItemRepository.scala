@@ -12,7 +12,7 @@ import cats.implicits._
 import cats.effect._
 import com.github.nscala_time.time.Imports.DateTimeZone
 import com.kelvin.whoseturn.config.PostgresqlConfig
-import com.kelvin.whoseturn.entity.TodoItemEntity
+import com.kelvin.whoseturn.entities.TodoItemEntity
 import com.kelvin.whoseturn.errors.repostiory.PostgreSqlError
 import com.kelvin.whoseturn.errors._
 import com.typesafe.scalalogging.{CanLog, LazyLogging}

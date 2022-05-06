@@ -2,7 +2,7 @@ package com.kelvin.whoseturn.repositories
 
 import cats.data.EitherT
 import cats.effect.IO
-import com.kelvin.whoseturn.entity.TodoItemEntity
+import com.kelvin.whoseturn.entities.TodoItemEntity
 import com.kelvin.whoseturn.errors.Error
 import fs2.Pipe
 

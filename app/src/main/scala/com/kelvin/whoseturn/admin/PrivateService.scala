@@ -2,7 +2,6 @@ package com.kelvin.whoseturn.admin
 
 import cats.effect.IO
 import com.codahale.metrics.MetricRegistry
-import com.kelvin.whoseturn.models.CreateTodoItemModel
 import org.http4s.HttpRoutes
 import org.http4s._
 import org.http4s.circe._

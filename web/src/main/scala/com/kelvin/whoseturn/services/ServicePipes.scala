@@ -4,10 +4,8 @@ import cats._
 import cats.implicits._
 import cats.data._
 import cats.effect.IO
-import com.kelvin.whoseturn.entity.TodoItemEntity
 import com.kelvin.whoseturn.errors._
 import com.kelvin.whoseturn.errors.ValidationError
-import com.kelvin.whoseturn.models.CreateTodoItemModel
 import fs2.Pipe
 import io.circe.Json
 import io.circe.generic.auto._
