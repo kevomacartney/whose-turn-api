@@ -7,7 +7,7 @@ import com.codahale.metrics.MetricRegistry
 import com.kelvin.whoseturn.repositories.TodoItemRepository
 import cats.effect.IO
 import com.codahale.metrics.MetricRegistry
-import com.kelvin.whoseturn.entity.TodoItemEntity
+import com.kelvin.whoseturn.entities.TodoItemEntity
 import com.kelvin.whoseturn.errors.{ValidatedField, ValidationError}
 import com.kelvin.whoseturn.models.CreateTodoItemModel
 import com.typesafe.scalalogging.LazyLogging

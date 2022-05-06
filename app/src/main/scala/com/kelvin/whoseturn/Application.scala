@@ -1,47 +1,59 @@
 package com.kelvin.whoseturn
 
 import cats.effect._
+import com.codahale.metrics.MetricRegistry
+import com.kelvin.whoseturn.admin.PrivateService
 import com.kelvin.whoseturn.config.ApplicationConfig
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.LazyLogging
+import org.http4s.HttpRoutes
+import org.http4s.blaze.server.BlazeServerBuilder
+import org.http4s.server.{Router, Server}
 import pureconfig.ConfigSource
-
-import collection.JavaConverters._
+import com.kelvin.whoseturn.config.ConfigOverrides._
 import scala.io.{BufferedSource, Source}
+import scala.jdk.CollectionConverters._
 
 object Application extends LazyLogging {
 
-  def run(env: String): IO[ExitCode] = {
-    val appResource = for {
-      secrets   <- loadSecrets
-      appConfig <- loadConfig(secrets)
-      wiring    <- Wiring.create(appConfig)
-    } yield wiring
+  def run(env: String, configOverride: Config = ConfigFactory.empty()): IO[ExitCode] = {
+    val runningAppResource = for {
+      secrets         <- loadSecrets
+      appConfig       <- loadConfig(secrets, configOverride)
+      metricsRegistry <- Resource.eval(IO(new MetricRegistry))
+      runningApp      <- Wiring.create(appConfig)(metricsRegistry)
+      _               <- initOpsService(appConfig, metricsRegistry)
+    } yield runningApp
 
-    appResource
+    runningAppResource
       .use { server =>
-        IO {
-          logger.info(s"Server running at address ${server.baseUri}")
-          ExitCode.Success
-        }
+        logger.info(s"Server running at address ${server.baseUri}")
+        IO.never
       }
+      .as(ExitCode.Success)
       .handleErrorWith { ex =>
         logger.error("Server terminated due to error", ex)
         IO.raiseError(ex)
       }
   }
 
-  def loadConfig(secrets: Map[String, String]): Resource[IO, ApplicationConfig] = { // required
-    import pureconfig.generic.auto._
+  def loadConfig(secrets: Map[String, String], configOverride: Config): Resource[IO, ApplicationConfig] = {
+    import pureconfig.generic.auto._ // required
 
-    val defaultConfigResource = Resource.eval(IO(ConfigFactory.parseResources("default.conf")))
+    val defaultConfigResource = Resource.eval(IO(ConfigFactory.parseResources("application.conf")))
     val secretsConfigResource = Resource.eval(IO(ConfigFactory.parseMap(secrets.asJava)))
 
     for {
       defaultConfig <- defaultConfigResource
       secretsConfig <- secretsConfigResource
-      mergedConfig  = ConfigFactory.load().withFallback(defaultConfig).withFallback(secretsConfig).resolve()
-      appConfig     = ConfigSource.fromConfig(mergedConfig).loadOrThrow[ApplicationConfig]
+      mergedConfig = ConfigFactory
+        .load()
+        .withFallback(defaultConfig)
+        .withFallback(secretsConfig)
+        .withOverride(configOverride)
+        .resolve()
+
+      appConfig = ConfigSource.fromConfig(mergedConfig).loadOrThrow[ApplicationConfig]
     } yield appConfig
   }
 
@@ -57,5 +69,19 @@ object Application extends LazyLogging {
       json   = decode[Map[String, String]](str).getOrElse(throw new RuntimeException("Invalid secrets file"))
     } yield json
 
+  }
+
+  private def initOpsService(appConfig: ApplicationConfig, metricRegistry: MetricRegistry): Resource[IO, Server] = {
+    val opsService = createOpsService(metricRegistry)
+    BlazeServerBuilder[IO]
+      .bindHttp(appConfig.opsServerConfig.port, "0.0.0.0")
+      .withHttpApp(opsService.orNotFound)
+      .resource
+  }
+
+  private def createOpsService(metricRegistry: MetricRegistry): HttpRoutes[IO] = {
+    val httpService = new PrivateService(metricRegistry)
+    val services    = httpService.alive()
+    Router(s"/private" -> services)
   }
 }
