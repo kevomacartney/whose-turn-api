@@ -31,7 +31,7 @@ trait TodoItemsFixtures {
       category: String = "Kitchen",
       priority: String = "low",
       location: String = "London",
-      active: Boolean = false
+      active: Boolean = true
   ): TodoItemEntity =
     TodoItemEntity(
       id = id,

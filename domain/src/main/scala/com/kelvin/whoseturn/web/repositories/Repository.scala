@@ -1,4 +1,4 @@
-package com.kelvin.whoseturn.repositories
+package com.kelvin.whoseturn.web.repositories
 
 import java.util.UUID
 import scala.language.higherKinds

@@ -70,13 +70,13 @@ lazy val `app` = (project in file("./app"))
 lazy val `end-to-end` = (project in file("./end-to-end"))
   .dependsOn(`test-support`, `domain`, `app`)
   .settings(commonSettings, testingFramework)
-  .settings(Http4s.http4sAll)
   .settings(
     name := "end-to-end",
     libraryDependencies ++= List(
+      Testing.simpleHttpClient,
+      Fs2.fs2Core,
       Config.pureConfig,
       Circe.circeOptics,
-      Fs2.fs2Core,
       Metrics.metricsCore,
       Metrics.metricsJson,
       Metrics.metricsJvm

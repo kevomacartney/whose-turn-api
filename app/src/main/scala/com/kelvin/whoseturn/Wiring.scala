@@ -5,7 +5,7 @@ import cats.implicits._
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.jvm._
 import com.kelvin.whoseturn.config._
-import com.kelvin.whoseturn.services.TodoStateService
+import com.kelvin.whoseturn.web.services.TodoStateService
 import com.typesafe.scalalogging.LazyLogging
 import fs2.Stream
 import org.http4s.HttpRoutes
@@ -16,7 +16,7 @@ import org.http4s.server._
 import org.http4s.server.middleware.Metrics
 import com.datastax.oss.driver.api.core.CqlSession
 import com.kelvin.whoseturn.admin.PrivateService
-import com.kelvin.whoseturn.repositories.{PostgresqlTodoItemRepository, TodoItemRepository}
+import com.kelvin.whoseturn.web.repositories._
 
 import java.lang.management.ManagementFactory.getPlatformMBeanServer
 import java.net.InetSocketAddress
@@ -47,6 +47,6 @@ object Wiring extends LazyLogging {
     val services    = httpService.add()
     val server      = Router(s"/api/${appConfig.restConfig.apiVersion}" -> services)
 
-    Metrics[IO](Dropwizard(metricRegistry, "server"))(server)
+    Metrics[IO](Dropwizard(metricRegistry, "http.api."))(server)
   }
 }

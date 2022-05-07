@@ -1,4 +1,4 @@
-package com.kelvin.whoseturn.repositories
+package com.kelvin.whoseturn.web.repositories
 
 import doobie._
 import doobie.implicits._

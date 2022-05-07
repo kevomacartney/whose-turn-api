@@ -142,6 +142,7 @@ object KafkaTestSupport {
       .post(uri)
       .header("Content-Type", "application/vnd.schemaregistry.v1+json")
       .body(body)
+
   }
 
   private def defineCreateSchemaRequestBody(schemaPath: String): String = {

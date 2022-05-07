@@ -12,12 +12,12 @@ import org.scalatest.featurespec.AnyFeatureSpec
 import org.scalatest.matchers.must.Matchers
 
 class EndToEndSpec extends AnyFeatureSpec with TestApplication with ScalaFutures with Matchers with TodoItemsFixtures {
-  Scenario("/api/v1/add Metrics are record") {
+  Scenario("/api/v1/add returns HTTP 200 for valid body") {
     withTestApp() { context =>
-      val createModelEncoder: EntityEncoder[IO, CreateTodoItemModel] = jsonEncoderOf[IO, CreateTodoItemModel]
-      val entity                                                     = createModelEncoder.toEntity(CreateTodoItemModelFixture())
+      implicit val createModelEncoder: EntityEncoder[IO, CreateTodoItemModel] = jsonEncoderOf[IO, CreateTodoItemModel]
+      val body = CreateTodoItemModelFixture()
 
-      context.executeRequestWithResponse(url = "/api/v1/add", method = Method.PUT, body = entity.body) { response =>
+      context.executeRequestWithResponse(url = "/api/v1/add", method = Method.PUT, body = body) { response =>
         response.status mustBe Status.Ok
       }
     }

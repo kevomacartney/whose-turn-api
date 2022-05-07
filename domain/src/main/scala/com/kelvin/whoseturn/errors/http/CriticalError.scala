@@ -1,4 +1,5 @@
-package com.kelvin.whoseturn.errors
+package com.kelvin.whoseturn.errors.http
+import com.kelvin.whoseturn.errors.Error
 
 case class CriticalError(message: String) extends Error
 
