@@ -1,16 +1,18 @@
 package com.kelvin.whoseturn.web.test.endpoints
 
 import cats.effect.IO
+import cats.implicits._
 import cats.effect.unsafe.implicits.global
 import com.codahale.metrics.MetricRegistry
-import com.kelvin.whoseturn.entity.TodoItemEntity
+import com.kelvin.whoseturn.entities.TodoItemEntity
+import com.kelvin.whoseturn.errors.DatabaseError
 import com.kelvin.whoseturn.errors.http._
 import com.kelvin.whoseturn.errors.meta.BodyError
+import com.kelvin.whoseturn.errors.repostiory.PostgreSqlError
+import com.kelvin.whoseturn.models.CreateTodoItemModel
+import com.kelvin.whoseturn.support.fixtures.TodoItemsFixtures
 import com.kelvin.whoseturn.web.repositories._
 import com.kelvin.whoseturn.web.services.TodoStateService
-import com.kelvin.whoseturn.web.models.CreateTodoItemModel
-import fs2.Stream
-import io.circe._
 import io.circe.generic.auto._
 import org.http4s.circe._
 import org.http4s._
@@ -18,7 +20,6 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import com.kelvin.whoseturn.web.test.testSupport.TodoItemsFixtures
 
 class TodoStateServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with TodoItemsFixtures {
   import TodoStateServiceSpec._
@@ -69,8 +70,22 @@ class TodoStateServiceSpec extends AnyWordSpec with Matchers with ScalaFutures w
       }
     }
 
-    "failed gracefully and return HTTP 500 when unexpected exception is thrown" in {
-      val context = TestContext(todoItemRepository = failingMockedTodoItemRepo)
+    "fail gracefully and return HTTP 500 when unexpected exception is thrown" in {
+      val context = TestContext(todoItemRepository = exceptionThrowingMockedTodoItemRepo)
+
+      withTodoService(context) { todoService =>
+        val request  = buildSuccessfulAddRequest()
+        val response = todoService(request).unsafeRunSync()
+
+        response.status mustBe Status.InternalServerError
+
+        val responseEntity = response.as[CriticalError].unsafeRunSync()
+        responseEntity.message mustBe "There was an Internal Service Error, please try again."
+      }
+    }
+
+    "fail gracefully and return HTTP 500 when repository returns an error" in {
+      val context = TestContext(todoItemRepository = errorReturningMockedTodoItemRepo)
 
       withTodoService(context) { todoService =>
         val request  = buildSuccessfulAddRequest()
@@ -86,43 +101,62 @@ class TodoStateServiceSpec extends AnyWordSpec with Matchers with ScalaFutures w
 }
 
 object TodoStateServiceSpec extends MockFactory with TodoItemsFixtures with Matchers {
+  import com.kelvin.whoseturn.implicits.TimestampImplicits._ // required
+
   case class TestContext(todoItemRepository: TodoItemRepository[IO])
   type Service = Request[IO] => IO[Response[IO]]
 
-  implicit val createModelEncoder: EntityEncoder[IO, CreateTodoItemModel] = jsonEncoderOf[IO, CreateTodoItemModel]
-  implicit val todoItemDecoder: EntityDecoder[IO, TodoItemEntity]         = jsonOf[IO, TodoItemEntity]
   implicit val criticalErrorDecoder: EntityDecoder[IO, CriticalError]     = jsonOf[IO, CriticalError]
   implicit val genericErrorDecoder: EntityDecoder[IO, GenericError]       = jsonOf[IO, GenericError]
   implicit val validationErrorDecoder: EntityDecoder[IO, ValidationError] = jsonOf[IO, ValidationError]
+  implicit val createModelEncoder: EntityEncoder[IO, CreateTodoItemModel] = jsonEncoderOf[IO, CreateTodoItemModel]
+
+  implicit val todoItemDecoder: EntityDecoder[IO, TodoItemEntity] = jsonOf[IO, TodoItemEntity]
 
   def withTodoService[T](
       context: TestContext
   )(f: Service => T)(implicit metricRegistry: MetricRegistry = new MetricRegistry()): T = {
-    implicit val todoItemRepo: TodoItemRepository[IO] = context.todoItemRepository
-    val service: Service                              = new TodoStateService().add().orNotFound.run
+    val todoItemRepo: TodoItemRepository[IO] = context.todoItemRepository
+    val service: Service                     = new TodoStateService(todoItemRepo).add().orNotFound.run
 
     f(service)
   }
 
-  def successfulMockedTodoItemRepo(todoItemEntity: TodoItemEntity = TodoItemEntityFixture()): TodoItemRepository[IO] = {
+  def successfulMockedTodoItemRepo(): TodoItemRepository[IO] = {
     val mockedRepo: TodoItemRepository[IO] = mock[TodoItemRepository[IO]]
-    (mockedRepo.addItem _)
+    (mockedRepo.add _)
       .expects(*)
       .onCall { param: TodoItemEntity =>
-        compareTodoEntitiesOrFail(param)(todoItemEntity)
-        IO(param)
+        IO(param.asRight)
       }
       .once()
 
     mockedRepo
   }
 
-  def failingMockedTodoItemRepo: TodoItemRepository[IO] = {
+  def exceptionThrowingMockedTodoItemRepo: TodoItemRepository[IO] = {
     val mockedRepo: TodoItemRepository[IO] = mock[TodoItemRepository[IO]]
 
-    (mockedRepo.addItem _)
+    (mockedRepo.add _)
       .expects(*)
       .returning(IO.raiseError(new Exception("BOOOOM")))
+
+    mockedRepo
+  }
+
+  def errorReturningMockedTodoItemRepo: TodoItemRepository[IO] = {
+    val mockedRepo: TodoItemRepository[IO] = mock[TodoItemRepository[IO]]
+
+    (mockedRepo.add _)
+      .expects(*)
+      .returning(
+        IO(
+          PostgreSqlError(
+            cause = DatabaseError,
+            message = "Could not update update entity due to unexpected error"
+          ).asLeft[TodoItemEntity]
+        )
+      )
 
     mockedRepo
   }

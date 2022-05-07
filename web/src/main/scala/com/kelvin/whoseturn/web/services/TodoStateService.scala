@@ -6,13 +6,14 @@ import cats.data._
 import com.codahale.metrics.MetricRegistry
 import com.kelvin.whoseturn.web.repositories.TodoItemRepository
 import cats.effect.IO
-import com.kelvin.whoseturn.entity.TodoItemEntity
+import com.kelvin.whoseturn.entities.TodoItemEntity
+import com.kelvin.whoseturn.errors.Error
 import com.kelvin.whoseturn.errors.meta.BodyError
 import com.kelvin.whoseturn.errors.http._
-import com.kelvin.whoseturn.web.models.CreateTodoItemModel
+import com.kelvin.whoseturn.exceptions.UnexpectedErrorException
 import com.kelvin.whoseturn.todo.Priority._
-import com.kelvin.whoseturn.implicits.CirceTimestampEncoder._
 import com.kelvin.whoseturn.implicits.TimestampImplicits._
+import com.kelvin.whoseturn.models.CreateTodoItemModel
 import com.kelvin.whoseturn.web.services.TodoStateServiceValidation._
 import com.typesafe.scalalogging.LazyLogging
 import fs2.Stream
@@ -22,12 +23,10 @@ import io.circe.syntax._
 import org.http4s._
 import org.http4s.circe._
 import org.http4s.dsl.io._
-import org.joda.time.DateTime
 
-import java.util.UUID
-
-class TodoStateService(implicit var metricRegistry: MetricRegistry, todoItemRepository: TodoItemRepository[IO])
-    extends ServiceHelpers {
+class TodoStateService(todoItemRepository: TodoItemRepository[IO])(implicit metricRegistry: MetricRegistry)
+    extends ServiceHelpers
+    with LazyLogging {
 
   import TodoStateService._
 
@@ -45,7 +44,7 @@ class TodoStateService(implicit var metricRegistry: MetricRegistry, todoItemRepo
     case GET -> Root / "get" / UUIDVar(todoItemId) =>
       val stream = Stream
         .eval(IO(todoItemId))
-        .through(todoItemRepository.getItem)
+        .through(todoItemRepository.get)
 
       Ok(stream)
   }
@@ -53,9 +52,26 @@ class TodoStateService(implicit var metricRegistry: MetricRegistry, todoItemRepo
   def addTodoEntityToRepo(
       validatedTodo: ValidatedNel[ValidatedField, TodoItemEntity]
   ): IO[Either[ValidationError, TodoItemEntity]] = {
+
+    def handleRepositoryError(either: Either[Error, TodoItemEntity]): IO[Either[ValidationError, TodoItemEntity]] = {
+      either.fold(
+        error => {
+          logger.error(
+            s"Raising internal server error, could create todo entity due to repository error [error=$error]"
+          )
+          IO.raiseError(UnexpectedErrorException(s"TodoItemRepository returned error [error=$error]"))
+        },
+        entity =>
+          IO {
+            logger.info(s"Created new todo item [todoItemId=${entity.id}]")
+            entity.asRight
+          }
+      )
+    }
+
     validatedTodo.fold(
       validationErrors => IO(createValidationErrorFromValidatedFields(validationErrors)),
-      todoItem => todoItemRepository.addItem(todoItem).map(_.asRight[ValidationError])
+      todoItem => todoItemRepository.add(todoItem).flatMap(handleRepositoryError)
     )
   }
 }

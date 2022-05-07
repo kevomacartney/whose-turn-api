@@ -4,10 +4,10 @@ import cats._
 import cats.data._
 import cats.implicits._
 import cats.syntax._
-import com.kelvin.whoseturn.entity.TodoItemEntity
+import com.kelvin.whoseturn.entities.TodoItemEntity
 import com.kelvin.whoseturn.errors.http.ValidatedField
 import com.kelvin.whoseturn.implicits.TimestampImplicits._
-import com.kelvin.whoseturn.web.models.CreateTodoItemModel
+import com.kelvin.whoseturn.models.CreateTodoItemModel
 import org.joda.time.DateTime
 
 import java.util.UUID
@@ -27,7 +27,7 @@ object TodoStateServiceValidation {
         description = model.description,
         flagged = model.flagged,
         category = model.category,
-        priority = model.priority.toString,
+        priority = model.priority,
         location = location,
         active = model.active
       )

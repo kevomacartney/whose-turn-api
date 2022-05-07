@@ -4,7 +4,6 @@ import cats._
 import cats.implicits._
 import cats.data._
 import cats.effect.IO
-import com.kelvin.whoseturn.entity.TodoItemEntity
 import com.kelvin.whoseturn.errors._
 import com.kelvin.whoseturn.errors.http.{CriticalError, GenericError, ValidationError}
 import fs2.Pipe
