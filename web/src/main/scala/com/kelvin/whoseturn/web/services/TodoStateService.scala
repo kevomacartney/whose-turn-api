@@ -14,6 +14,7 @@ import com.kelvin.whoseturn.exceptions.UnexpectedErrorException
 import com.kelvin.whoseturn.todo.Priority._
 import com.kelvin.whoseturn.implicits.TimestampImplicits._
 import com.kelvin.whoseturn.models.CreateTodoItemModel
+import com.kelvin.whoseturn.web.metrics.TodoStateServiceMetrics
 import com.kelvin.whoseturn.web.services.TodoStateServiceValidation._
 import com.typesafe.scalalogging.LazyLogging
 import fs2.Stream
@@ -26,7 +27,8 @@ import org.http4s.dsl.io._
 
 class TodoStateService(todoItemRepository: TodoItemRepository[IO])(implicit metricRegistry: MetricRegistry)
     extends ServiceHelpers
-    with LazyLogging {
+    with LazyLogging
+    with TodoStateServiceMetrics {
 
   import TodoStateService._
 
@@ -37,7 +39,12 @@ class TodoStateService(todoItemRepository: TodoItemRepository[IO])(implicit metr
         .map(validateCreateTodoItemModel)
         .flatMap(addTodoEntityToRepo)
         .flatMap(createValidationResponse[TodoItemEntity])
+        .map { resp =>
+          incrementTodoItemCreatedCounter()
+          resp
+        }
         .handleErrorWith(handleIOError)
+
   }
 
   def get(): HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -53,7 +60,7 @@ class TodoStateService(todoItemRepository: TodoItemRepository[IO])(implicit metr
       validatedTodo: ValidatedNel[ValidatedField, TodoItemEntity]
   ): IO[Either[ValidationError, TodoItemEntity]] = {
 
-    def handleRepositoryError(either: Either[Error, TodoItemEntity]): IO[Either[ValidationError, TodoItemEntity]] = {
+    def handleWithError(either: Either[Error, TodoItemEntity]): IO[Either[ValidationError, TodoItemEntity]] = {
       either.fold(
         error => {
           logger.error(
@@ -71,7 +78,7 @@ class TodoStateService(todoItemRepository: TodoItemRepository[IO])(implicit metr
 
     validatedTodo.fold(
       validationErrors => IO(createValidationErrorFromValidatedFields(validationErrors)),
-      todoItem => todoItemRepository.add(todoItem).flatMap(handleRepositoryError)
+      todoItem => todoItemRepository.add(todoItem).flatMap(handleWithError)
     )
   }
 }

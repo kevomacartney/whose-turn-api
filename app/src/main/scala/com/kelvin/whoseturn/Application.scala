@@ -1,6 +1,7 @@
 package com.kelvin.whoseturn
 
 import cats.effect._
+import cats.implicits._
 import com.codahale.metrics.MetricRegistry
 import com.kelvin.whoseturn.admin.PrivateService
 import com.kelvin.whoseturn.config.ApplicationConfig
@@ -11,6 +12,7 @@ import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.{Router, Server}
 import pureconfig.ConfigSource
 import com.kelvin.whoseturn.config.ConfigOverrides._
+
 import scala.io.{BufferedSource, Source}
 import scala.jdk.CollectionConverters._
 
@@ -81,7 +83,7 @@ object Application extends LazyLogging {
 
   private def createOpsService(metricRegistry: MetricRegistry): HttpRoutes[IO] = {
     val httpService = new PrivateService(metricRegistry)
-    val services    = httpService.alive()
+    val services    = httpService.alive() <+> httpService.metrics()
     Router(s"/private" -> services)
   }
 }

@@ -1,28 +1,26 @@
 package com.kelvin.whoseturn.kafka.producer
 
-import cats.MonadError
-import cats.data.EitherT
 import cats.effect._
 import cats.syntax.all._
+import com.codahale.metrics.MetricRegistry
 import com.kelvin.whoseturn.config.KafkaProducerConfig
 import com.kelvin.whoseturn.errors.kafka.ProducerError
 import com.kelvin.whoseturn.kafka._
+import com.kelvin.whoseturn.kafka.messages.Codecs.WhoseTurnTodoItemEventCodec._
 import com.kelvin.whoseturn.kafka.messages._
 import com.kelvin.whoseturn.repositories.GenericRepository
-import vulcan._
+import com.typesafe.scalalogging.LazyLogging
 import fs2.kafka._
 import fs2.kafka.vulcan._
 import org.apache.kafka.clients.producer.ProducerConfig._
-import com.kelvin.whoseturn.kafka.messages.Codecs.WhoseTurnTodoItemEventCodec._
-import com.kelvin.whoseturn.kafka.producer.TodoItemKafkaProducer.createProducerSettings
-import com.typesafe.scalalogging.LazyLogging
-import org.slf4j.MDC
 
 import java.util.UUID
 
-class TodoItemKafkaProducer(producer: KafkaProducer[IO, UUID, TodoItemUserActionEvent], topicName: String)
-    extends GenericRepository[IO, TodoItemUserActionEvent]
-    with LazyLogging {
+class TodoItemKafkaProducer(producer: KafkaProducer[IO, UUID, TodoItemUserActionEvent], topicName: String)(
+    implicit metricRegistry: MetricRegistry
+) extends GenericRepository[IO, TodoItemUserActionEvent]
+    with LazyLogging
+    with TodoItemKafkaProducerMetrics {
   override def add(
       action: TodoItemUserActionEvent
   ): IO[Either[ProducerError, TodoItemUserActionEvent]] = {
@@ -34,18 +32,21 @@ class TodoItemKafkaProducer(producer: KafkaProducer[IO, UUID, TodoItemUserAction
                  .flatten
                  .map(_ => action.asRight[ProducerError])
                  .handleError(handleProduceError)
+      _ <- IO(incrementTodoItemEventProducedEvent(action))
     } yield output
   }
 
   def handleProduceError(throwable: Throwable): Either[ProducerError, TodoItemUserActionEvent] = {
     logger.error("Could not produce todo action due to error", throwable)
-
+    incrementTodoItemEventProducerError()
     ProducerError(message = "There was an error while producing event to kafka", cause = Some(throwable)).asLeft
   }
 }
 
 object TodoItemKafkaProducer {
-  def resource(kafkaProducerConfig: KafkaProducerConfig): Resource[IO, TodoItemKafkaProducer] = {
+  def resource(kafkaProducerConfig: KafkaProducerConfig)(
+    implicit metricRegistry: MetricRegistry
+  ): Resource[IO, TodoItemKafkaProducer] = {
 
     val keySerializerResource   = Resource.eval(IO(Serializer[IO, UUID]))
     val valueSerializerResource = avroSerializerSettings(kafkaProducerConfig)

@@ -22,12 +22,9 @@ trait TestApplication
     with Matchers
     with Eventually
     with PostgresqlTestSupport {
-  private val ServerPort    = getFreePort
-  private val OpsServerPort = getFreePort
-
   def withTestApp[T]()(fn: TestContext => T): T = {
     withPostgresql { _ =>
-      implicit val context: TestContext = TestContext(serverPort = ServerPort)
+      implicit val context: TestContext = TestContext(serverPort = getFreePort, opsServerPort = getFreePort)
 
       val testIo = for {
         runningServer <- Application.run("Acceptance", createE2eConfig).start
@@ -53,17 +50,17 @@ trait TestApplication
       }
     }
 
-  protected def makeOpsServerRequest(path: String, method: Method = Method.GET): Request[IO] = {
-    val fullURl              = s"http://127.0.0.1:$OpsServerPort$path"
+  protected def makeOpsServerRequest(path: String, method: Method = Method.GET)(implicit testContext: TestContext): Request[IO] = {
+    val fullURl              = s"http://127.0.0.1:${testContext.opsServerPort}$path"
     val request: Request[IO] = Request(method, uri = Uri.unsafeFromString(fullURl))
     request
   }
 
-  protected def createE2eConfig: Config = {
+  protected def createE2eConfig(implicit testContext: TestContext): Config = {
     val configMap = Map(
       "postgresql-config.port" -> PostgreSqlTestContainer.getMappedPort(5432),
-      "rest-config.port"       -> ServerPort,
-      "ops-server-config.port" -> OpsServerPort
+      "rest-config.port"       -> testContext.serverPort,
+      "ops-server-config.port" -> testContext.opsServerPort
     ).asJava
 
     ConfigFactory.parseMap(configMap)

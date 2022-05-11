@@ -47,6 +47,6 @@ object Wiring extends LazyLogging {
     val services    = httpService.add()
     val server      = Router(s"/api/${appConfig.restConfig.apiVersion}" -> services)
 
-    Metrics[IO](Dropwizard(metricRegistry, "http.api."))(server)
+    Metrics[IO](Dropwizard(metricRegistry, "http.api"))(server)
   }
 }

@@ -1,6 +1,6 @@
 package com.kelvin.whoseturn.fixtures
 
-import com.kelvin.whoseturn.kafka.messages._
+import com.kelvin.whoseturn.kafka.messages.{EventAction, TodoItemUserActionEvent}
 
 import java.time.Instant
 import java.util.UUID

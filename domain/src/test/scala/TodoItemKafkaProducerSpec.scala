@@ -1,7 +1,6 @@
-package com.kelvin.whoseturn
-
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
+import com.codahale.metrics.MetricRegistry
 import com.kelvin.whoseturn.config.KafkaProducerConfig
 import com.kelvin.whoseturn.errors.kafka.ProducerError
 import com.kelvin.whoseturn.fixtures.TodoItemUserActionEventFixture
@@ -103,6 +102,7 @@ object TodoItemKafkaProducerSpec extends MockFactory {
       batchSize = 1
     )
 
+    implicit val metricsRegistry: MetricRegistry = new MetricRegistry()
     TodoItemKafkaProducer
       .resource(kafkaConfig)
       .use { producer =>
@@ -118,6 +118,7 @@ object TodoItemKafkaProducerSpec extends MockFactory {
       .expects(*)
       .returning(IO(IO.raiseError(new Exception("KABOOOOM!"))))
 
+    implicit val metricsRegistry: MetricRegistry = new MetricRegistry()
     val todoItemProduce = new TodoItemKafkaProducer(mockedProducer, "")
     f(todoItemProduce)
   }
